@@ -115,11 +115,17 @@ int BasicCPU::ID()
 			fpOP = false;
 			return decodeDataProcImm();
 			break;
-		// case TODO
-		// x101 Data Processing -- Register on page C4-278
-		default:
+		case 0x0A000000: //x == 0
+			fpOP = false;
+			return decodeDataProcReg();
+			break;
+		case 0x1A000000: //x == 1
+			// x101 Data Processing -- Register on page C4-278
+			default:
 			return 1; // instrução não implementada
 	}
+
+	return 1;
 };
 
 /**
@@ -229,7 +235,46 @@ int BasicCPU::decodeDataProcReg() {
 	//		de txt_isummation.o.txt.
 	
 	
-	// instrução não implementada
+	int Rn, Rm, imm6;
+	switch (IR & 0x7F200000)
+	{
+		case 0x0B000000: //sf == 0, 32bits
+			int sf = (IR & 0x8000000);
+			if (sf == 1)
+				return sf; // return 1
+			int shift = (IR & 0x00C00000) >> 22;
+			Rn = (IR & 0x000003E0) >> 5;
+
+			A = getW(Rn);
+
+			imm6 = (IR & 0x0000FC00) >> 10;
+			Rm = (IR & 0x001F0000) >> 16;
+
+			B = getW(Rm);
+			
+			switch (shift)
+			{
+				case 0:
+					B = B << imm6;
+					ALUctrl = ALUctrlFlag::ADD;
+					return 0;
+					break;
+				case 1:
+					B = ((unsigned long)B) >> imm6;
+					ALUctrl = ALUctrlFlag::ADD;
+					return 0;
+					break;
+				case 2:
+					B = B >> imm6;
+					ALUctrl = ALUctrlFlag::ADD;
+					return 0;
+					break;
+				default:
+					return 1;
+					break;
+			}
+			return 1;
+	}
 	return 1;
 }
 
