@@ -36,7 +36,8 @@
 #include "BasicCPU.h"
 #include "Util.h"
 
-BasicCPU::BasicCPU(Memory *memory) {
+BasicCPU::BasicCPU(Memory *memory)
+{
 	this->memory = memory;
 }
 
@@ -50,22 +51,27 @@ int BasicCPU::run(uint64_t startAddress)
 	PC = startAddress;
 
 	// ciclo da máquina
-	while ((cpuError != CPUerrorCode::NONE) && !processFinished) {
+	while ((cpuError != CPUerrorCode::NONE) && !processFinished)
+	{
 		IF();
 		ID();
-		if (fpOp == FPOpFlag::FP_UNDEF) {
+		if (fpOp == FPOpFlag::FP_UNDEF)
+		{
 			EXI();
-		} else {
+		}
+		else
+		{
 			EXF();
 		}
 		MEM();
 		WB();
 	}
-	
-	if (cpuError) {
+
+	if (cpuError)
+	{
 		return 1;
 	}
-	
+
 	return 0;
 };
 
@@ -109,34 +115,33 @@ int BasicCPU::ID()
 	// operação inteira como padrão
 	fpOp = FPOpFlag::FP_UNDEF;
 
-	int group = IR & 0x1E000000; // bits 28-25	
+	int group = IR & 0x1E000000; // bits 28-25
 	switch (group)
 	{
-		//100x Data Processing -- Immediate
-		case 0x10000000: // x = 0
-		case 0x12000000: // x = 1
-			return decodeDataProcImm();
-			break;
-		// x101 Data Processing -- Register on page C4-278
-		case 0x0A000000: 
-		case 0x1A000000:
-			return decodeDataProcReg();
-			break;
-		
-		// TODO
-		// implementar o GRUPO A SEGUIR
-		//
-		// x111 Data Processing -- Scalar Floating-Point and Advanced SIMD on page C4-288
+	//100x Data Processing -- Immediate
+	case 0x10000000: // x = 0
+	case 0x12000000: // x = 1
+		return decodeDataProcImm();
+		break;
+	// x101 Data Processing -- Register on page C4-278
+	case 0x0A000000:
+	case 0x1A000000:
+		return decodeDataProcReg();
+		break;
+	// x111 Data Processing -- Scalar Floating-Point and Advanced SIMD on page C4-288
+	case 0X0E000000:
+	case 0X1E000000:
+		return decodeDataProcFloat();
+		break;
 
-		
 		// ATIVIDADE FUTURA
 		// implementar os DOIS GRUPOS A SEGUIR
 		//
 		// 101x Loads and Stores on page C4-237
 		// 101x Branches, Exception Generating and System instructions on page C4-237
-		
-		default:
-			return 1; // instrução não implementada
+
+	default:
+		return 1; // instrução não implementada
 	}
 };
 
@@ -151,10 +156,11 @@ int BasicCPU::ID()
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
  */
-int BasicCPU::decodeDataProcImm() {
+int BasicCPU::decodeDataProcImm()
+{
 	unsigned int n, d;
 	int imm;
-	
+
 	/* Add/subtract (immediate) (pp. 233-234)
 		This section describes the encoding of the Add/subtract (immediate)
 		instruction class. The encodings in this section are decoded from
@@ -162,47 +168,54 @@ int BasicCPU::decodeDataProcImm() {
 	*/
 	switch (IR & 0xFF800000)
 	{
-		case 0xD1000000:
-			//1 1 0 SUB (immediate) - 64-bit variant on page C6-1199
-			
-			if (IR & 0x00400000) return 1; // sh = 1 não implementado
-			
-			// ler A e B
-			n = (IR & 0x000003E0) >> 5;
-			if (n == 31) {
-				A = SP;
-			} else {
-				A = getX(n); // 64-bit variant
-			}
-			imm = (IR & 0x003FFC00) >> 10;
-			B = imm;
-			
-			// registrador destino
-			d = (IR & 0x0000001F);
-			if (d == 31) {
-				Rd = &SP;
-			} else {
-				Rd = &(R[d]);
-			}
-			
-			// atribuir ALUctrl
-			ALUctrl = ALUctrlFlag::SUB;
-			
-			// atribuir MEMctrl
-			MEMctrl = MEMctrlFlag::MEM_NONE;
-			
-			// atribuir WBctrl
-			WBctrl = WBctrlFlag::RegWrite;
-			
-			// atribuir MemtoReg
-			MemtoReg = false;
-			
-			return 0;
-		default:
-			// instrução não implementada
-			return 1;
+	case 0xD1000000:
+		//1 1 0 SUB (immediate) - 64-bit variant on page C6-1199
+
+		if (IR & 0x00400000)
+			return 1; // sh = 1 não implementado
+
+		// ler A e B
+		n = (IR & 0x000003E0) >> 5;
+		if (n == 31)
+		{
+			A = SP;
+		}
+		else
+		{
+			A = getX(n); // 64-bit variant
+		}
+		imm = (IR & 0x003FFC00) >> 10;
+		B = imm;
+
+		// registrador destino
+		d = (IR & 0x0000001F);
+		if (d == 31)
+		{
+			Rd = &SP;
+		}
+		else
+		{
+			Rd = &(R[d]);
+		}
+
+		// atribuir ALUctrl
+		ALUctrl = ALUctrlFlag::SUB;
+
+		// atribuir MEMctrl
+		MEMctrl = MEMctrlFlag::MEM_NONE;
+
+		// atribuir WBctrl
+		WBctrl = WBctrlFlag::RegWrite;
+
+		// atribuir MemtoReg
+		MemtoReg = false;
+
+		return 0;
+	default:
+		// instrução não implementada
+		return 1;
 	}
-	
+
 	// instrução não implementada
 	return 1;
 }
@@ -214,7 +227,8 @@ int BasicCPU::decodeDataProcImm() {
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
  */
-int BasicCPU::decodeBranches() {
+int BasicCPU::decodeBranches()
+{
 	// instrução não implementada
 	return 1;
 }
@@ -226,7 +240,8 @@ int BasicCPU::decodeBranches() {
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
  */
-int BasicCPU::decodeLoadStore() {
+int BasicCPU::decodeLoadStore()
+{
 	// instrução não implementada
 	return 1;
 }
@@ -238,55 +253,58 @@ int BasicCPU::decodeLoadStore() {
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
  */
-int BasicCPU::decodeDataProcReg() {
+int BasicCPU::decodeDataProcReg()
+{
 	// TODO
 	// acrescentar switches e cases à medida em que forem sendo
 	// adicionadas implementações de instruções de processamento
 	// de dados por registrador.
 
-	unsigned int n,m,shift,imm6;
-	
+	unsigned int n, m, shift, imm6;
+
 	switch (IR & 0xFF200000)
 	{
-		
-		// C6.2.5 ADD (shifted register) p. C6-688
-		case 0x8B000000:
-		case 0x0B000000:
-			// sf == 1 not implemented (64 bits)
-			if (IR & 0x80000000) return 1;
-		
-			n=(IR & 0x000003E0) >> 5;
-			A=getW(n);
-		
-			m=(IR & 0x001F0000) >> 16;
-			int BW=getW(m);
-		
-			shift=(IR & 0x00C00000) >> 22;
-			imm6=(IR & 0x0000FC00) >> 10;
-		
-			switch(shift){
-				case 0://LSL
-					B= BW << imm6;
-					break;
-				case 1://LSR
-					B=((unsigned long)BW) >> imm6;
-					break;
-				case 2://ASR
-					B=((signed long)BW) >> imm6;
-					break;
-				default:
-					return 1;
-			}
 
-			// atribuir ALUctrl
-			ALUctrl = ALUctrlFlag::ADD;
-			
-			// ATIVIDADE FUTURA:
-			// implementar informações para os estágios MEM e WB.
+	// C6.2.5 ADD (shifted register) p. C6-688
+	case 0x8B000000:
+	case 0x0B000000:
+		// sf == 1 not implemented (64 bits)
+		if (IR & 0x80000000)
+			return 1;
 
-			return 0;
+		n = (IR & 0x000003E0) >> 5;
+		A = getW(n);
+
+		m = (IR & 0x001F0000) >> 16;
+		int BW = getW(m);
+
+		shift = (IR & 0x00C00000) >> 22;
+		imm6 = (IR & 0x0000FC00) >> 10;
+
+		switch (shift)
+		{
+		case 0: //LSL
+			B = BW << imm6;
+			break;
+		case 1: //LSR
+			B = ((unsigned long)BW) >> imm6;
+			break;
+		case 2: //ASR
+			B = ((signed long)BW) >> imm6;
+			break;
+		default:
+			return 1;
+		}
+
+		// atribuir ALUctrl
+		ALUctrl = ALUctrlFlag::ADD;
+
+		// ATIVIDADE FUTURA:
+		// implementar informações para os estágios MEM e WB.
+
+		return 0;
 	}
-		
+
 	// instrução não implementada
 	return 1;
 }
@@ -299,8 +317,9 @@ int BasicCPU::decodeDataProcReg() {
  * Retorna 0: se executou corretamente e
  *		   1: se a instrução não estiver implementada.
  */
-int BasicCPU::decodeDataProcFloat() {
-	unsigned int n,m,d;
+int BasicCPU::decodeDataProcFloat()
+{
+	unsigned int n, m, d;
 
 	// TODO
 	// Acrescente os cases no switch já iniciado, para implementar a
@@ -314,48 +333,68 @@ int BasicCPU::decodeDataProcFloat() {
 	// operação executadas pelas instruções acima.
 	switch (IR & 0xFF20FC00)
 	{
-		case 0x1E203800:
-			//C7.2.159 FSUB (scalar) on page C7-1615
-			
-			// implementado apenas ftype='00'
-			if (IR & 0x00C00000) return 1;
+	case 0x1E203800:
+		//C7.2.159 FSUB (scalar) on page C7-1615
 
-			fpOp = FPOpFlag::FP_REG_32;
-			
-			// ler A e B
-			n = (IR & 0x000003E0) >> 5;
-			A = getSasInt(n); // 32-bit variant
-
-			m = (IR & 0x001F0000) >> 16;
-			B = getSasInt(m);
-
-			// registrador destino
-			d = (IR & 0x0000001F);
-			Rd = &(V[d]);
-			
-			// atribuir ALUctrl
-			ALUctrl = ALUctrlFlag::SUB;
-			
-			// atribuir MEMctrl
-			MEMctrl = MEMctrlFlag::MEM_NONE;
-			
-			// atribuir WBctrl
-			WBctrl = WBctrlFlag::RegWrite;
-			
-			// atribuir MemtoReg
-			MemtoReg = false;
-			
-			return 0;
-
-		default:
-			// instrução não implementada
+		// implementado apenas ftype='00'
+		if (IR & 0x00C00000)
 			return 1;
+
+		fpOp = FPOpFlag::FP_REG_32;
+
+		// ler A e B
+		n = (IR & 0x000003E0) >> 5;
+		A = getSasInt(n); // 32-bit variant
+
+		m = (IR & 0x001F0000) >> 16;
+		B = getSasInt(m);
+
+		// registrador destino
+		d = (IR & 0x0000001F);
+		Rd = &(V[d]);
+
+		// atribuir ALUctrl
+		ALUctrl = ALUctrlFlag::SUB;
+
+		// atribuir MEMctrl
+		MEMctrl = MEMctrlFlag::MEM_NONE;
+
+		// atribuir WBctrl
+		WBctrl = WBctrlFlag::RegWrite;
+
+		// atribuir MemtoReg
+		MemtoReg = false;
+		return 0;
+
+	case 0x1E202800:
+		//C7.2.159 FADD (scalar) página C7-1346
+
+		// implementado apenas ftype='00'
+		if (IR & 0x00C00000)
+			return 1;
+
+		fpOp = FPOpFlag::FP_REG_32;
+
+		// ler A e B
+		n = (IR & 0x000003E0) >> 5;
+		A = getSasInt(n); // 32-bit variant
+
+		m = (IR & 0x001F0000) >> 16;
+		B = getSasInt(m);
+
+		// registrador destino
+		d = (IR & 0x0000001F);
+		Rd = &(V[d]);
+		return 0;
+
+	default:
+		// instrução não implementada
+		return 1;
 	}
 
 	// instrução não implementada
 	return 1;
 }
-
 
 /**
  * Execução lógico aritmética inteira.
@@ -379,19 +418,22 @@ int BasicCPU::EXI()
 	// operação executadas pelas instruções acima.
 	switch (ALUctrl)
 	{
-		case ALUctrlFlag::SUB:
-			ALUout = A - B;
-			return 0;
-		default:
-			// Controle não implementado
-			return 1;
+	case ALUctrlFlag::SUB:
+		ALUout = A - B;
+		return 0;
+
+	case ALUctrlFlag::ADD:
+		ALUout = A + B;
+		return 0;
+	default:
+		// Controle não implementado
+		return 1;
 	}
-	
+
 	// Controle não implementado
 	return 1;
 };
 
-		
 /**
  * Execução lógico aritmética em ponto flutuante.
  * 
@@ -413,18 +455,19 @@ int BasicCPU::EXF()
 	// Verifique que ALUctrlFlag já tem declarados os tipos de
 	// operação executadas pelas instruções acima.
 
-	if (fpOp == FPOpFlag::FP_REG_32) {
+	if (fpOp == FPOpFlag::FP_REG_32)
+	{
 		// 32-bit implementation
 		float fA = Util::uint64LowAsFloat(A);
 		float fB = Util::uint64LowAsFloat(B);
 		switch (ALUctrl)
 		{
-			case ALUctrlFlag::SUB:
-				ALUout = Util::floatAsUint64Low(fA - fB);
-				return 0;
-			default:
-				// Controle não implementado
-				return 1;
+		case ALUctrlFlag::SUB:
+			ALUout = Util::floatAsUint64Low(fA - fB);
+			return 0;
+		default:
+			// Controle não implementado
+			return 1;
 		}
 	}
 	// não implementado
@@ -449,7 +492,6 @@ int BasicCPU::MEM()
 	return 1;
 }
 
-
 /**
  * Write-back. Escreve resultado da operação no registrador destino.
  * 
@@ -463,11 +505,10 @@ int BasicCPU::WB()
 	// Implementar o switch (WBctrl) case WBctrlFlag::XXX com as
 	// atribuições corretas do registrador destino, quando houver, ou
 	// return 0 no caso WBctrlFlag::WB_NONE.
-	
+
 	// não implementado
 	return 1;
 }
-
 
 /**
  * Métodos de acesso ao banco de registradores
@@ -476,36 +517,40 @@ int BasicCPU::WB()
 /**
  * Lê registrador inteiro de 32 bits.
  */
-uint32_t BasicCPU::getW(int n) {
+uint32_t BasicCPU::getW(int n)
+{
 	return (uint32_t)(0x00000000FFFFFFFF & R[n]);
 }
 
 /**
  * Escreve registrador inteiro de 32 bits.
  */
-void BasicCPU::setW(int n, uint32_t value) {
+void BasicCPU::setW(int n, uint32_t value)
+{
 	R[n] = (uint64_t)value;
 }
 
 /**
  * Lê registrador inteiro de 64 bits.
  */
-uint64_t BasicCPU::getX(int n) {
+uint64_t BasicCPU::getX(int n)
+{
 	return R[n];
 }
 
 /**
  * Escreve registrador inteiro de 64 bits.
  */
-void BasicCPU::setX(int n, uint64_t value) {
+void BasicCPU::setX(int n, uint64_t value)
+{
 	R[n] = value;
 }
-
 
 /**
  * Lê registrador ponto flutuante de 32 bits.
  */
-float BasicCPU::getS(int n) {
+float BasicCPU::getS(int n)
+{
 	return Util::uint64LowAsFloat(V[n]);
 }
 
@@ -520,20 +565,23 @@ uint32_t BasicCPU::getSasInt(int n)
 /**
  * Escreve registrador ponto flutuante de 32 bits.
  */
-void BasicCPU::setS(int n, float value) {
+void BasicCPU::setS(int n, float value)
+{
 	V[n] = Util::floatAsUint64Low(value);
 }
 
 /**
  * Lê registrador ponto flutuante de 64 bits.
  */
-double BasicCPU::getD(int n) {
+double BasicCPU::getD(int n)
+{
 	return Util::uint64AsDouble(V[n]);
 }
 
 /**
  * Escreve registrador ponto flutuante de 64 bits.
  */
-void BasicCPU::setD(int n, double value) {
+void BasicCPU::setD(int n, double value)
+{
 	V[n] = Util::doubleAsUint64(value);
 }
