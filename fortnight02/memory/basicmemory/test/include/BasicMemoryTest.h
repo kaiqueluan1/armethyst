@@ -32,61 +32,37 @@
 
    ----------------------------------------------------------------------------
 */
+#include "config.h"
+#include "BasicMemory.h"
 
-#include "BasicCPUTest.h"
+using namespace std;
 
-/**
- * Apenas inicia PC, não executa o ciclos de máquina.
- */
-BasicCPUTest::BasicCPUTest(Memory *memory)
-	: BasicCPU(memory)
+class BasicMemoryTest : public BasicMemory
 {
-/* 	// inicia PC com o valor de startAddress
-	PC = startAddress;
+public:
+	enum MemAccessType {MAT_NONE, MAT_READ32, MAT_WRITE32, MAT_READ64, MAT_WRITE64};
 
-	return 0;
- */}
+	BasicMemoryTest(int size);
+	~BasicMemoryTest();
+		
+	void relocateManual();
+	void writeBinaryAsTextELF (string basename);
 	
-int BasicCPUTest::getIR() {
-	return IR;
-}
-
-void BasicCPUTest::setSP(long address) {
-	SP = address;
-}
-
-int BasicCPUTest::getW(int n) {
-	return BasicCPU::getW(n);
-}
-
-void BasicCPUTest::setW(int n, int value) {
-	BasicCPU::setW(n,value);
-}
-
-long BasicCPUTest::getA() {
-	return A;
-}
-
-long BasicCPUTest::getB() {
-	return B;
-}
-
-ALUctrlFlag BasicCPUTest::getALUctrl() {
-	return ALUctrl;
-}
+	MemAccessType getLastDataMemAccess();
+	void resetLastDataMemAccess();
 	
-long BasicCPUTest::getALUout() {
-	return ALUout;
-}
+	/*
+	 * Logs dos métodos da superclasse.
+	 */
+	uint32_t readInstruction32(uint64_t address);
+	int readData32(unsigned long address);
+	long readData64(unsigned long address);
+	void writeData32(unsigned long address, int value);
+	void writeData64(unsigned long address, long value);
 
-void BasicCPUTest::runIF() {
-	IF();
-}
+private:
+	MemAccessType lastDataMemAccess;
+	ofstream memLogStream;
+	
+};
 
-int BasicCPUTest::runID() {
-	return ID();
-}
-
-int BasicCPUTest::runEXI() {
-	return EXI();
-}

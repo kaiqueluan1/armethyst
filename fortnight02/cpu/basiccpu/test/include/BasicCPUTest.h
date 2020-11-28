@@ -50,16 +50,15 @@ class BasicCPUTest: public BasicCPU
 		BasicCPUTest(Memory *memory);
 		
 		// registers
-		void setSP(uint64_t address);
-		void setW(int n, uint32_t value);
-		void setX(int n, uint64_t value);
-		void setS(int n, float value);
+		void setSP(long address);
+		void setW(int n, int value);
+		void setX(int n, long value);
 
 		// flags
 		void resetFlags();
 
 		// IF
-		uint32_t getIR();
+		int getIR();
 		void runIF();
 		
 		// ID
@@ -67,20 +66,19 @@ class BasicCPUTest: public BasicCPU
 		ALUctrlFlag getALUctrl();
 		MEMctrlFlag getMEMctrl();
 		WBctrlFlag getWBctrl();
-		uint64_t getA();
-		uint64_t getB();
+		long getA();
+		long getB();
 
-		// EX
-		int runEXF();
+		// EXI
 		int runEXI();
-		uint64_t getALUout();
+		long getALUout();
 		
 		// MEM
 		int runMEM();
- 		uint64_t getMDR();
+ 		long getMDR();
 		
 		// WB
 		int runWB();
-		uint64_t getRd();
+		unsigned long getRd();
 		
 };

@@ -1,22 +1,16 @@
 /* ----------------------------------------------------------------------------
-	
-	(EN) BasicProcessor - A single core processor with a basic CPU. Part of
-	armethyst project.
-	
-    armethyst - A simple ARM Simulator written in C++ for Computer Architecture
+
+    (EN) armethyst - A simple ARM Simulator written in C++ for Computer Architecture
     teaching purposes. Free software licensed under the MIT License (see license
     below).
 
-	(PT) BasicProcessor - Um processador de núcleo único com uma CPU básica.
-	Parte do projeto armethyst.
-	
-    armethyst - Um simulador ARM simples escrito em C++ para o ensino de
+    (PT) armethyst - Um simulador ARM simples escrito em C++ para o ensino de
     Arquitetura de Computadores. Software livre licenciado pela MIT License
-    (veja a licença, em inglês, abaixo).
+    (veja a licenÃ§a, em inglÃªs, abaixo).
 
     (EN) MIT LICENSE:
 
-    Copyright 2020 André Vital Saúde
+    Copyright 2020 AndrÃ© Vital SaÃºde
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -38,13 +32,37 @@
 
    ----------------------------------------------------------------------------
 */
+#include "config.h"
+#include "BasicMemory.h"
 
-#include "Processor.h"
+using namespace std;
 
-class BasicProcessor: public Processor
+class BasicMemoryTest : public BasicMemory
 {
-	public:
-		BasicProcessor(Memory* _memory);
+public:
+	enum MemAccessType {MAT_NONE, MAT_READ32, MAT_WRITE32, MAT_READ64, MAT_WRITE64};
+
+	BasicMemoryTest(int size);
+	~BasicMemoryTest();
 		
-		int run(int startAddress);
+	void relocateManual();
+	void writeBinaryAsTextELF (string basename);
+	
+	MemAccessType getLastDataMemAccess();
+	void resetLastDataMemAccess();
+	
+	/*
+	 * Logs dos mÃ©todos da superclasse.
+	 */
+	uint32_t readInstruction32(uint64_t address);
+	int readData32(unsigned long address);
+	long readData64(unsigned long address);
+	void writeData32(unsigned long address, int value);
+	void writeData64(unsigned long address, long value);
+
+private:
+	MemAccessType lastDataMemAccess;
+	ofstream memLogStream;
+	
 };
+
