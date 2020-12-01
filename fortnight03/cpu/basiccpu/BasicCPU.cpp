@@ -385,6 +385,18 @@ int BasicCPU::decodeDataProcFloat()
 		// registrador destino
 		d = (IR & 0x0000001F);
 		Rd = &(V[d]);
+
+		// atribuir ALUctrl
+		ALUctrl = ALUctrlFlag::ADD;
+
+		// atribuir MEMctrl
+		MEMctrl = MEMctrlFlag::MEM_NONE;
+
+		// atribuir WBctrl
+		WBctrl = WBctrlFlag::RegWrite;
+
+		// atribuir MemtoReg
+		MemtoReg = false;
 		return 0;
 
 	default:
@@ -465,6 +477,11 @@ int BasicCPU::EXF()
 		case ALUctrlFlag::SUB:
 			ALUout = Util::floatAsUint64Low(fA - fB);
 			return 0;
+		
+		case ALUctrlFlag::ADD:
+			ALUout = Util::floatAsUint64Low(fA + fB);
+			return 0;
+
 		default:
 			// Controle não implementado
 			return 1;
