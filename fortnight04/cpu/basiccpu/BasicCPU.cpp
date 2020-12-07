@@ -229,7 +229,112 @@ int BasicCPU::decodeDataProcImm()
  */
 int BasicCPU::decodeBranches()
 {
-	// instrução não implementada
+	unsigned int n, d;
+
+    switch (IR & 0xFFE0FC00) {
+    case 0xB8607800: //LDR (Register) C6.2.121 891
+        n = (IR & 0x000003E0) >> 5;
+        if (n == 31) {
+            A = SP;
+        }
+        else {
+            A = getW(n);
+        }
+
+        n = (IR & 0x001F0000) >> 16;
+        if (n == 31) {
+            B = SP << 2;
+        }
+        else {
+            B = getW(n) << 2;
+        }
+
+        d = IR & 0x0000001F;
+
+        if (d == 31) {
+            Rd = &SP;
+        }
+        else {
+            Rd = &R[d];
+        }
+
+        ALUctrl = ALUctrlFlag::ADD;
+        MEMctrl = MEMctrlFlag::READ32;
+        WBctrl = WBctrlFlag::RegWrite;
+        MemtoReg = true;
+        return 0;
+        break;
+    }
+
+    switch (IR & 0xFFC00000) {
+    case 0xB9400000: //LDR C6.2.119 Immediate (Unsigned offset) 886
+        n = (IR & 0x000003E0) >> 5;
+        if (n == 31) {
+            A = SP;
+        }
+        else {
+            A = R[n];
+        }
+
+        B = ((IR & 0x003FFC00) >> 10) << 2;
+
+        d = IR & 0x0000001F;
+        if (d == 31) {
+            Rd = &SP;
+        }
+        else {
+            Rd = &R[d];
+        }
+
+        ALUctrl = ALUctrlFlag::ADD;
+        MEMctrl = MEMctrlFlag::READ32;
+        WBctrl = WBctrlFlag::RegWrite;
+        MemtoReg = true;
+        return 0;
+
+    case 0xB9800000: //LDRSW C6.2.131 Immediate (Unsigned offset) 913
+        n = (IR & 0x000003e0) >> 5;
+        if (n == 31) {
+            A = SP;
+        }
+        else {
+            A = R[n];
+        }
+        B = (IR & 0x003ffc00) >> 8; // immediate
+        Rd = &R[IR & 0x0000001F];   //XW = R | regD = Rd | regB = B | regA = A | execcode = ALU
+        ALUctrl = ALUctrlFlag::ADD;
+        MEMctrl = MEMctrlFlag::READ64;
+        WBctrl = WBctrlFlag::RegWrite;
+        MemtoReg = true;
+        return 0;
+
+    case 0xB9000000: //STR C6.2.257 Unsigned offset 1135
+                     //size = 10, 32 bit
+        n = (IR & 0x000003E0) >> 5;
+        if (n == 31) {
+            A = SP;
+        }
+        else {
+            A = R[n];
+        }
+        B = ((IR & 0x003FFC00) >> 10) << 2; //offset = imm12 << scale. scale == size
+
+        d = IR & 0x0000001F;
+        if (d == 31) {
+            Rd = &SP;
+        }
+        else {
+            Rd = &R[d];
+        }
+        ALUctrl = ALUctrlFlag::ADD;
+        MEMctrl = MEMctrlFlag::WRITE32;
+        WBctrl = WBctrlFlag::WB_NONE;
+        MemtoReg = false;
+        return 0;
+        // XW = R | regD = Rd | regB = B | regA = A | execcode = ALUctrl | memcode = MEMctrl | wb = WBctrl
+    default:
+        return 1; // instrução não implementada
+    }
 	return 1;
 }
 
@@ -301,6 +406,9 @@ int BasicCPU::decodeDataProcReg()
 
 		// ATIVIDADE FUTURA:
 		// implementar informações para os estágios MEM e WB.
+		MEMctrl = MEMctrlFlag::MEM_NONE;
+        WBctrl = WBctrlFlag::RegWrite;
+        MemtoReg = false;
 
 		return 0;
 	}
@@ -500,10 +608,23 @@ int BasicCPU::EXF()
  */
 int BasicCPU::MEM()
 {
-	// TODO
-	// Implementar o switch (MEMctrl) case MEMctrlFlag::XXX com as
-	// chamadas aos métodos corretos que implementam cada caso de
-	// acesso à memória de dados.
+	
+	switch (MEMctrl) {
+	case MEMctrlFlag::READ32:
+		MDR = memory->readData32(ALUout);
+		return 0;
+	case MEMctrlFlag::WRITE32:
+		memory->writeData32(ALUout,*Rd);
+		return 0;
+	case MEMctrlFlag::READ64:
+		MDR = memory->readData64(ALUout);
+		return 0;
+	case MEMctrlFlag::WRITE64:
+		memory->writeData64(ALUout,*Rd);
+		return 0;
+	default:
+		return 0;
+	}
 	// não implementado
 
 	return 1;
@@ -518,11 +639,20 @@ int BasicCPU::MEM()
  */
 int BasicCPU::WB()
 {
-	// TODO
-	// Implementar o switch (WBctrl) case WBctrlFlag::XXX com as
-	// atribuições corretas do registrador destino, quando houver, ou
-	// return 0 no caso WBctrlFlag::WB_NONE.
-
+	 switch (WBctrl) {
+        case WBctrlFlag::WB_NONE:
+            return 0;
+        case WBctrlFlag::RegWrite:
+            if (MemtoReg) {
+                *Rd = MDR;
+            } else {
+                *Rd = ALUout;
+            }
+            return 0;
+        default:
+            // não implementado
+            return 1;
+    }
 	// não implementado
 	return 1;
 }
